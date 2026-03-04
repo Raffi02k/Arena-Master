@@ -1,0 +1,5 @@
+{
+  "name": "Arena Master: Tournament Generator",
+  "description": "A professional-grade tournament generator supporting Knockout and League formats with real-time standings and match tracking.",
+  "requestFramePermissions": []
+}
