@@ -13,6 +13,7 @@ interface LoginProps {
 export default function Login({ mode = 'login', onBack }: LoginProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [isRegistering, setIsRegistering] = useState(mode === 'signup');
     const [error, setError] = useState('');
     const { login } = useAuth();
@@ -30,6 +31,11 @@ export default function Login({ mode = 'login', onBack }: LoginProps) {
 
         try {
             if (isRegistering) {
+                if (password !== confirmPassword) {
+                    setError('Passwords do not match');
+                    setIsLoading(false);
+                    return;
+                }
                 // Register user
                 await client.post('/api/register', {
                     email: email,
@@ -78,7 +84,7 @@ export default function Login({ mode = 'login', onBack }: LoginProps) {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-500/10 text-green-500 mb-4 shadow-[0_0_30px_rgba(34,197,94,0.25)]">
                         <LogIn size={32} />
                     </div>
-                    <h2 className="text-3xl font-bold text-white">Arena-Master</h2>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Arena Master</h2>
                     <p className="text-zinc-400 mt-2">
                         {isRegistering ? 'Create an account to get started' : 'Sign in to manage your tournaments'}
                     </p>
@@ -113,6 +119,19 @@ export default function Login({ mode = 'login', onBack }: LoginProps) {
                             placeholder="••••••••"
                         />
                     </div>
+                    {isRegistering && (
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">Confirm Password</label>
+                            <input
+                                type="password"
+                                required
+                                className="w-full bg-zinc-950/80 border border-zinc-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500/60 focus:border-transparent transition-all"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    )}
                     <button
                         type="submit"
                         disabled={isLoading}
