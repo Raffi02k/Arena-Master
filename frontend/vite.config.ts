@@ -20,9 +20,6 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': apiProxyTarget,
-        '/register': apiProxyTarget,
-        '/token': apiProxyTarget,
-        '/me': apiProxyTarget,
       },
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.

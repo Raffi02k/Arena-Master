@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
-                    const res = await client.get('/me');
+                    const res = await client.get('/api/me');
                     setUser(res.data);
                 } catch (error) {
                     console.error("Failed to fetch user:", error);
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const login = async (token: string) => {
         localStorage.setItem('token', token);
-        const res = await client.get('/me');
+        const res = await client.get('/api/me');
         setUser(res.data);
     };
 

@@ -31,7 +31,7 @@ export default function Login({ mode = 'login', onBack }: LoginProps) {
         try {
             if (isRegistering) {
                 // Register user
-                await client.post('/register', {
+                await client.post('/api/register', {
                     email: email,
                     password: password
                 });
@@ -44,7 +44,7 @@ export default function Login({ mode = 'login', onBack }: LoginProps) {
             form.append('username', email);
             form.append('password', password);
 
-            const response = await client.post('/token', form, {
+            const response = await client.post('/api/token', form, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
