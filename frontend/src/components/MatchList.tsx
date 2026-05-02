@@ -1,7 +1,8 @@
 import React from 'react';
 import { Match, MatchStatus, Team, Tournament } from '../types';
-import { calculateGroupStandings } from '../logic/tournamentLogic';
+import { calculateGroupStandings, calculateStandings } from '../logic/tournamentLogic';
 import { CheckCircle2, Circle, Trophy, Layers3, Swords, Wand2 } from 'lucide-react';
+import { TournamentFormat } from '../types';
 import { motion } from 'motion/react';
 
 interface MatchListProps {
@@ -189,8 +190,50 @@ export const MatchList: React.FC<MatchListProps> = ({ tournament, onUpdateScore 
   const otherMatches = tournament.matches.filter((match) => match.stage !== 'GROUP' && match.stage !== 'QUALIFIER');
   const groupStandings = calculateGroupStandings(tournament);
 
+  const isLeagueFormat = tournament.format === TournamentFormat.LEAGUE_SINGLE || 
+                         tournament.format === TournamentFormat.LEAGUE_DOUBLE ||
+                         tournament.format === TournamentFormat.SWISS;
+
+  const standings = isLeagueFormat 
+    ? calculateStandings(tournament.teams, tournament.matches, tournament.pointsConfig)
+    : [];
+
   return (
     <div className="space-y-12 pb-20">
+      {isLeagueFormat && standings.length > 0 && (
+        <section className="space-y-5">
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5 sm:p-6">
+            <div className="flex items-center gap-3 mb-2 text-white font-black text-lg sm:text-xl">
+              <Trophy className="w-5 h-5 text-green-500" />
+              League Preview
+            </div>
+            <p className="text-sm text-zinc-400">Current standings based on played matches.</p>
+          </div>
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="space-y-2">
+              {standings.map((standing, index) => (
+                <div key={standing.teamId} className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/60 px-4 py-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`inline-flex h-8 w-8 items-center justify-center rounded-xl text-xs font-black ${index === 0 ? 'bg-green-500 text-black' : 'bg-zinc-800 text-zinc-400'}`}>
+                      {index + 1}
+                    </span>
+                    <span className="truncate font-bold text-zinc-100 uppercase text-sm">{standing.teamName}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-[10px] font-black uppercase text-zinc-500">
+                      GP: {standing.played}
+                    </div>
+                    <div className="text-xs font-black uppercase tracking-[0.18em] text-green-500 whitespace-nowrap">
+                      {standing.points} pts
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {groupStandings.length > 0 && (
         <section className="space-y-5">
           <div className="rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5 sm:p-6">

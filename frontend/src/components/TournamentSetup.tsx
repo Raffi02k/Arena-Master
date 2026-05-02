@@ -44,6 +44,7 @@ export const TournamentSetup: React.FC<TournamentSetupProps> = ({ t, onStart }) 
   const [groupAssignmentMethod, setGroupAssignmentMethod] = useState<GroupAssignmentMethod>(GroupAssignmentMethod.RANDOM);
   const [manualGroupAssignments, setManualGroupAssignments] = useState<Record<string, string>>({});
   const [previewGroups, setPreviewGroups] = useState<GroupKnockoutConfig['groups']>([]);
+  const [leagueQualifiers, setLeagueQualifiers] = useState(4);
 
   const activeTeams = useMemo(() => teamPool.slice(0, teamCount), [teamPool, teamCount]);
 
@@ -82,6 +83,7 @@ export const TournamentSetup: React.FC<TournamentSetupProps> = ({ t, onStart }) 
 
   const isKnockout = format === TournamentFormat.SINGLE_ELIMINATION || format === TournamentFormat.KNOCKOUT_HOME_AWAY;
   const isGroupKnockout = format === TournamentFormat.GROUP_KNOCKOUT;
+  const isLeagueKnockout = format === TournamentFormat.LEAGUE_KNOCKOUT;
   const isEven = activeTeams.length % 2 === 0;
   const hasPowerOfTwoGroupCount = groupCount >= 2 && (groupCount & (groupCount - 1)) === 0;
   const isGroupSizeValid = teamsPerGroup >= 2 && teamCount % teamsPerGroup === 0;
@@ -100,7 +102,8 @@ export const TournamentSetup: React.FC<TournamentSetupProps> = ({ t, onStart }) 
     !!name &&
     activeTeams.length >= 2 &&
     (!isKnockout || isEven) &&
-    (!isGroupKnockout || (isGroupSizeValid && hasPowerOfTwoGroupCount && hasValidManualGroups));
+    (!isGroupKnockout || (isGroupSizeValid && hasPowerOfTwoGroupCount && hasValidManualGroups)) &&
+    (!isLeagueKnockout || (activeTeams.length >= leagueQualifiers && (leagueQualifiers & (leagueQualifiers - 1)) === 0));
 
   const handleStart = () => {
     if (!isValid) return;
@@ -127,13 +130,13 @@ export const TournamentSetup: React.FC<TournamentSetupProps> = ({ t, onStart }) 
       groupName: groups.find((group) => group.teamIds.includes(team.id))?.name,
     }));
 
-    const groupKnockoutConfig: GroupKnockoutConfig | undefined = isGroupKnockout
+    const groupKnockoutConfig: GroupKnockoutConfig | undefined = (isGroupKnockout || isLeagueKnockout)
       ? {
-          teamsPerGroup,
-          groupCount,
-          qualifiersPerGroup: 2,
-          assignmentMethod: groupAssignmentMethod,
-          groups,
+          teamsPerGroup: isLeagueKnockout ? activeTeams.length : teamsPerGroup,
+          groupCount: isLeagueKnockout ? 1 : groupCount,
+          qualifiersPerGroup: isLeagueKnockout ? leagueQualifiers : 2,
+          assignmentMethod: isLeagueKnockout ? GroupAssignmentMethod.RANDOM : groupAssignmentMethod,
+          groups: isLeagueKnockout ? [{ name: 'League', teamIds: activeTeams.map(t => t.id) }] : groups,
         }
       : undefined;
 
@@ -232,6 +235,7 @@ export const TournamentSetup: React.FC<TournamentSetupProps> = ({ t, onStart }) 
                 { id: TournamentFormat.LEAGUE_SINGLE, label: 'League (Single)', desc: 'Classic Round Robin' },
                 { id: TournamentFormat.LEAGUE_DOUBLE, label: 'League (Double)', desc: 'Home & Away Intensity' },
                 { id: TournamentFormat.GROUP_KNOCKOUT, label: 'Groups + Qualifiers', desc: 'Group stage then 1A vs 2B' },
+                { id: TournamentFormat.LEAGUE_KNOCKOUT, label: 'League + Playoffs', desc: 'One league then top 4/8/16' },
                 { id: TournamentFormat.SWISS, label: 'Swiss System', desc: 'Skill-based Pairings - No Elimination' },
               ].map((f) => (
                 <button
@@ -441,6 +445,49 @@ export const TournamentSetup: React.FC<TournamentSetupProps> = ({ t, onStart }) 
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {isLeagueKnockout && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-6 pt-4 border-t border-zinc-800 overflow-hidden"
+              >
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                    <Trophy className="w-3 h-3" />
+                    Number of Playoff Teams
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[2, 4, 8].map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => setLeagueQualifiers(num)}
+                        className={`px-4 py-3 rounded-xl border text-sm font-bold transition-all ${
+                          leagueQualifiers === num
+                            ? 'border-green-500 bg-green-500/10 text-white'
+                            : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'
+                        }`}
+                      >
+                        Top {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">
+                  Alla lag kör i en gemensam liga. Efter det går de **Topp {leagueQualifiers}** vidare till ett slutspelsträd.
+                </div>
+
+                {activeTeams.length < leagueQualifiers && (
+                  <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+                    Du behöver minst {leagueQualifiers} lag för att köra detta slutspel.
                   </div>
                 )}
               </motion.div>

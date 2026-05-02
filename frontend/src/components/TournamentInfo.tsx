@@ -16,7 +16,7 @@ export const TournamentInfo: React.FC<TournamentInfoProps> = ({ onBack, isLogged
       id: 'knockout',
       title: 'Knockout (Single Elimination)',
       icon: <Trophy className="w-6 h-6 text-orange-500" />,
-      description: 'The most dramatic format. Teams are paired up, and the loser is immediately eliminated from the tournament. The winners advance to the next round until only one champion remains.',
+      description: 'The most dramatic format. Teams are paired up, and the loser is immediately eliminated. The winners advance until only one champion remains.',
       pros: ['High stakes', 'Fast progression', 'Clear winner'],
       cons: ['Teams only guaranteed one match', 'Luck of the draw matters'],
       bestFor: 'Cup competitions, quick events, large number of teams.'
@@ -25,28 +25,46 @@ export const TournamentInfo: React.FC<TournamentInfoProps> = ({ onBack, isLogged
       id: 'league',
       title: 'League (Round Robin)',
       icon: <LayoutDashboard className="w-6 h-6 text-blue-500" />,
-      description: 'Every team plays against every other team in the tournament. Points are awarded for wins and draws. The team with the most points at the end of all rounds is the winner.',
+      description: 'Every team plays against every other team. Points are awarded for wins and draws. The team with the most points at the end wins.',
       pros: ['Fairness (everyone plays everyone)', 'More matches for all teams', 'Consistent performance wins'],
-      cons: ['Takes much longer', 'Can have "dead" matches at the end'],
+      cons: ['Takes longer', 'Can have "dead" matches at the end'],
       bestFor: 'Seasonal play, professional leagues, small groups.'
+    },
+    {
+      id: 'group-knockout',
+      title: 'Groups + Qualifiers',
+      icon: <Users className="w-6 h-6 text-yellow-500" />,
+      description: 'The World Cup style. Teams are divided into groups for a round-robin stage. The top performers from each group advance to a knockout bracket.',
+      pros: ['Guaranteed matches first', 'Dramatic playoff finale', 'Professional feel'],
+      cons: ['Requires group balancing', 'Complex schedule'],
+      bestFor: 'Large tournaments, corporate events, realistic Pro Cup feel.'
+    },
+    {
+      id: 'league-playoffs',
+      title: 'League + Playoffs (Pro)',
+      icon: <Shield className="w-6 h-6 text-green-500" />,
+      description: 'The ultimate hybrid. Everyone plays in one big league, but only the top few (Top 2, 4, or 8) reach the high-stakes final bracket.',
+      pros: ['Total fairness in league', 'Unbeatable climax', 'Live sync to bracket'],
+      cons: ['Longest duration', 'High fatigue'],
+      bestFor: 'Seasonal championships, esports circuits, finding the absolute best.'
     },
     {
       id: 'swiss',
       title: 'Swiss System',
-      icon: <Swords className="w-6 h-6 text-green-500" />,
-      description: 'A skill-based pairing system. In each round, teams are matched against opponents with a similar win-loss record. No one is eliminated, and you always play someone at your level.',
-      pros: ['Skill-based matching', 'No elimination', 'Fewer rounds than a full league'],
-      cons: ['Complex pairing logic', 'Harder to track standings manually'],
-      bestFor: 'Chess, Esports, Card games, tournaments with many teams but limited time.'
+      icon: <Swords className="w-6 h-6 text-cyan-500" />,
+      description: 'Skill-based pairing. In each round, teams face opponents with a similar record. No one is eliminated, and the competition stays balanced.',
+      pros: ['Skill-balanced matches', 'No elimination', 'Fewer rounds than a league'],
+      cons: ['Complex logic', 'Harder to track manually'],
+      bestFor: 'Chess, Esports, Card games, many teams but limited time.'
     },
     {
       id: 'home-away',
       title: 'Home & Away (Knockout)',
       icon: <Target className="w-6 h-6 text-purple-500" />,
-      description: 'Similar to Single Elimination, but each pairing consists of two matches. The team with the highest aggregate score across both matches advances.',
-      pros: ['Reduces home-field advantage', 'More balanced results'],
-      cons: ['Twice as many matches', 'Aggregate scoring can be confusing'],
-      bestFor: 'Champions League style playoffs, high-level competitive play.'
+      description: 'Knockout format where each pairing consists of two matches. The team with the highest aggregate score across both legs advances.',
+      pros: ['Reduces home-field bias', 'Strategic depth'],
+      cons: ['More matches', 'Aggregate math required'],
+      bestFor: 'Professional style playoffs, high-level competitive play.'
     }
   ];
 

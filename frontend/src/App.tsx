@@ -14,7 +14,7 @@ import { KnockoutBracketView } from './components/KnockoutBracketView';
 import Settings from './components/Settings';
 import { TournamentInfo } from './components/TournamentInfo';
 import { getDemoTournaments } from './demoData';
-import { Trophy, LayoutDashboard, Swords, ChevronLeft, RotateCcw, Share2, Check, LayoutGrid, LogOut, Settings as SettingsIcon, Users, Edit2, Info, Trash2, Play, HelpCircle, Menu, X } from 'lucide-react';
+import { Trophy, LayoutDashboard, Swords, ChevronLeft, RotateCcw, Share2, Check, LayoutGrid, LogOut, Settings as SettingsIcon, Users, Edit2, Info, Trash2, Play, HelpCircle, Menu, X, GitBranch } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { client } from './auth/client';
 import { useAuth } from './context/AuthContext';
@@ -936,42 +936,48 @@ export default function App() {
                   <span className="font-bold">{t('matches')}</span>
                 </button>
                 {tournament.format === TournamentFormat.GROUP_KNOCKOUT && (
-                  <>
-                    <button
-                      onClick={() => setActiveTab('groups')}
-                      className={`flex items-center gap-2 py-5 border-b-2 transition-all ${
-                        activeTab === 'groups'
-                          ? 'border-green-500 text-green-500'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-300'
-                      }`}
-                    >
-                      <Users className="w-4 h-4" />
-                      <span className="font-bold">Groups</span>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('bracket')}
-                      className={`flex items-center gap-2 py-5 border-b-2 transition-all ${
-                        activeTab === 'bracket'
-                          ? 'border-green-500 text-green-500'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-300'
-                      }`}
-                    >
-                      <LayoutDashboard className="w-4 h-4" />
-                      <span className="font-bold">Bracket</span>
-                    </button>
-                  </>
-                )}
-                {isLeague && (
                   <button
-                    onClick={() => setActiveTab('standings')}
+                    onClick={() => setActiveTab('groups')}
                     className={`flex items-center gap-2 py-5 border-b-2 transition-all ${
-                      activeTab === 'standings' 
-                        ? 'border-green-500 text-green-500' 
+                      activeTab === 'groups'
+                        ? 'border-green-500 text-green-500'
                         : 'border-transparent text-zinc-500 hover:text-zinc-300'
                     }`}
                   >
-                    <LayoutDashboard className="w-4 h-4" />
+                    <Users className="w-4 h-4" />
+                    <span className="font-bold">Groups</span>
+                  </button>
+                )}
+                {(tournament.format === TournamentFormat.LEAGUE_SINGLE ||
+                  tournament.format === TournamentFormat.LEAGUE_DOUBLE ||
+                  tournament.format === TournamentFormat.LEAGUE_KNOCKOUT ||
+                  tournament.format === TournamentFormat.SWISS) && (
+                  <button
+                    onClick={() => setActiveTab('standings')}
+                    className={`flex items-center gap-2 py-5 border-b-2 transition-all ${
+                      activeTab === 'standings'
+                        ? 'border-green-500 text-green-500'
+                        : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
                     <span className="font-bold">{t('standings')}</span>
+                  </button>
+                )}
+                {(tournament.format === TournamentFormat.GROUP_KNOCKOUT ||
+                  tournament.format === TournamentFormat.LEAGUE_KNOCKOUT ||
+                  tournament.format === TournamentFormat.SINGLE_ELIMINATION ||
+                  tournament.format === TournamentFormat.KNOCKOUT_HOME_AWAY) && (
+                  <button
+                    onClick={() => setActiveTab('bracket')}
+                    className={`flex items-center gap-2 py-5 border-b-2 transition-all ${
+                      activeTab === 'bracket'
+                        ? 'border-green-500 text-green-500'
+                        : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    <GitBranch className="w-4 h-4" />
+                    <span className="font-bold">Bracket</span>
                   </button>
                 )}
               </div>

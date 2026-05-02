@@ -65,7 +65,11 @@ const createGroupStageMatches = (groups: GroupDefinition[]): Match[] => {
   );
 };
 
-const createQualifierMatches = (groups: GroupDefinition[], startingRound: number): Match[] => {
+const createQualifierMatches = (
+  groups: GroupDefinition[],
+  startingRound: number,
+  qualifiersPerGroup: number = 2,
+): Match[] => {
   const qualifiers: Match[] = [];
 
   for (let i = 0; i < groups.length; i += 2) {
@@ -214,6 +218,24 @@ export const generateMatches = (
     const qualifiers = createQualifierMatches(groups, highestGroupRound + 1);
     const knockoutRounds = createKnockoutRoundsFromSources(qualifiers, highestGroupRound + 2);
     return [...groupMatches, ...qualifiers, ...knockoutRounds];
+  }
+
+  if (format === TournamentFormat.LEAGUE_KNOCKOUT) {
+    const leagueGroupIdx = 1;
+    const leagueGroup: GroupDefinition = {
+      name: 'League',
+      teamIds: teams.map((t) => t.id),
+    };
+
+    const numQualifiers = groupKnockoutConfig?.qualifiersPerGroup || 4;
+
+    const leagueMatches = createRoundRobinMatches(leagueGroup.teamIds, 'LEAGUE');
+    const highestRound = Math.max(0, ...leagueMatches.map((m) => m.round));
+
+    const qualifiers = createQualifierMatches([leagueGroup], highestRound + 1, numQualifiers);
+    const knockoutRounds = createKnockoutRoundsFromSources(qualifiers, highestRound + 2);
+
+    return [...leagueMatches, ...qualifiers, ...knockoutRounds];
   }
 
   if (format === TournamentFormat.LEAGUE_SINGLE || format === TournamentFormat.LEAGUE_DOUBLE) {
