@@ -1,20 +1,47 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Arena-Master 🏆
+Arena-Master is a powerful, user-friendly tournament management platform. It allows users to create, manage, and track sports or gaming tournaments with ease.
 
-# Run and deploy your AI Studio app
+## Features
+- **Multiple Formats**: Supports Single Elimination, Double Elimination (League Single/Double), and Swiss System.
+- **Team Management**: Easily seed and manage participating teams.
+- **Match Tracking**: Real-time match scoring and status updates.
+- **Automated Standings**: Dynamic calculation of league tables and Swiss standings (including Buchholz/Sonneborn-Berger).
+- **Responsive UI**: A modern, dark-themed interface built with React and Tailwind CSS.
+- **Secure Architecture**: FastAPI backend with local JWT authentication for personal data persistence.
 
-This contains everything you need to run your app locally.
+## Project Structure
+- **/backend**: FastAPI (Python) server with JWT authentication and SQLite database.
+- **/frontend**: React + Vite + TypeScript frontend with Tailwind CSS.
 
-View your app in AI Studio: https://ai.studio/apps/0d56a05c-5dcd-44e1-bf0d-393757217bd1
+## Getting Started
 
-## Run Locally
+### 1. Backend Setup
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\\Scripts\\activate
+pip install -r requirements.txt
+python -m app.seed        # Initialize database with test user
+uvicorn app.main:app --reload --port 8000
+```
 
-**Prerequisites:**  Node.js
+### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
+## Default Login (Local Development)
+- **Email**: `test@example.com`
+- **Password**: `password123`
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Docker Compose
+```bash
+docker compose up --build
+```
+
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8000`
+
+Compose starts both services and runs the backend seed script automatically.

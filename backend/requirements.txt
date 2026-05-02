@@ -1,0 +1,7 @@
+fastapi[standard]
+sqlalchemy
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+argon2-cffi
+multipart
