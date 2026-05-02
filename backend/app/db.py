@@ -4,16 +4,20 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Create database file in the same directory as this script, or specify a path
+# Create database logic
 DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tournaments.db')}")
 
 # Initialize engine
-engine = create_engine(
-    DATABASE_URL, connect_args={"check_same_thread": False}
-)
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(DATABASE_URL)
 
 # WAL mode is recommended for local development but can cause issues on read-only filesystems like Vercel
 try:
-    if not os.environ.get("VERCEL"):
+    if DATABASE_URL.startswith("sqlite") and not os.environ.get("VERCEL"):
         with engine.connect() as con:
             con.exec_driver_sql("PRAGMA journal_mode=WAL;")
 except Exception as e:
