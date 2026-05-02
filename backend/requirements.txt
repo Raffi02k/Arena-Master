@@ -5,3 +5,5 @@ python-jose[cryptography]
 passlib[bcrypt]
 argon2-cffi
 multipart
+psycopg2-binary
+python-dotenv
