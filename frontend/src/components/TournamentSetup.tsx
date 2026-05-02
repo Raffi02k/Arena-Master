@@ -500,27 +500,33 @@ export const TournamentSetup: React.FC<TournamentSetupProps> = ({ t, onStart }) 
               {activeTeams.map((team, index) => (
                 <motion.div
                   layout
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
                   key={team.id}
-                  className="rounded-3xl border border-zinc-800 bg-[linear-gradient(135deg,rgba(24,24,27,0.98),rgba(9,9,11,0.96))] p-3 sm:p-4 group/item focus-within:border-green-500/50 hover:border-zinc-700 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                  className="group/item relative overflow-hidden rounded-[32px] border border-zinc-800 bg-[linear-gradient(135deg,rgba(24,24,27,0.95),rgba(12,12,14,0.98))] p-4 sm:p-5 transition-all hover:border-green-500/30 hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)] flex flex-col gap-4"
                 >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="relative w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-sm font-black text-green-300 overflow-hidden">
-                      <span className="relative z-10">{getTeamInitials(team.name)}</span>
-                      <Shield className="absolute w-8 h-8 text-green-500/10" />
+                  <div className="flex items-center gap-4 sm:gap-5">
+                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-2xl bg-[linear-gradient(135deg,rgba(34,197,94,0.15),rgba(34,197,94,0.05))] border border-green-500/20 flex items-center justify-center text-lg font-black text-green-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                      <span className="relative z-10 drop-shadow-lg">{getTeamInitials(team.name)}</span>
+                      <Shield className="absolute w-10 h-10 text-green-500/5 rotate-12" />
+                      
+                      {/* Glow effect on hover */}
+                      <div className="absolute inset-0 bg-green-500/0 group-hover/item:bg-green-500/10 transition-colors duration-500" />
                     </div>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">Team {index + 1}</span>
-                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-600">Slot #{index + 1}</span>
+                    
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500/70">
+                          Arena Member #{index + 1}
+                        </span>
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
                       </div>
                       <input
                         type="text"
                         value={team.name}
                         onChange={(e) => updateTeamName(team.id, e.target.value)}
-                        className="w-full bg-transparent border-none outline-none text-zinc-100 font-black text-base sm:text-lg placeholder:text-zinc-700"
+                        className="w-full bg-transparent border-none outline-none text-zinc-100 font-black text-lg sm:text-xl placeholder:text-zinc-800 transition-all focus:placeholder:text-zinc-900"
                         placeholder={`Team ${index + 1}`}
                       />
                     </div>

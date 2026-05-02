@@ -102,6 +102,7 @@ export interface Tournament {
   contactInfo?: ContactInfo;
   swissConfig?: SwissConfig;
   groupKnockoutConfig?: GroupKnockoutConfig;
+  groupRankChanges?: Record<string, { previous: number; current: number }>;
   currentRound?: number;
 }
 

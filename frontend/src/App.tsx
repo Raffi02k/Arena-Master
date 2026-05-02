@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Tournament, TournamentFormat, Team, Match, MatchStatus, GroupKnockoutConfig } from './types';
-import { generateMatches, calculateStandings, generateSwissRound, syncGroupQualifierMatches } from './logic/tournamentLogic';
+import { generateMatches, calculateStandings, calculateGroupStandings, generateSwissRound, syncGroupQualifierMatches } from './logic/tournamentLogic';
 import { translations, Language, TranslationKey } from './i18n';
 import { TournamentSetup } from './components/TournamentSetup';
 import { MatchList } from './components/MatchList';
@@ -45,9 +45,17 @@ export default function App() {
 
   const t = (key: TranslationKey) => translations[appSettings.language][key] || key;
 
+  const applyTournamentAutoSync = (input: Tournament): Tournament => {
+    if (input.format !== TournamentFormat.GROUP_KNOCKOUT) {
+      return input;
+    }
+
+    return syncGroupQualifierMatches(input);
+  };
+
   const normalizeTournamentData = (data: any): Tournament => {
     const safeData = (data && typeof data === 'object') ? data : {};
-    return {
+    return applyTournamentAutoSync({
       id: safeData.id || crypto.randomUUID(),
       name: safeData.name || 'Untitled Tournament',
       format: safeData.format || TournamentFormat.LEAGUE_SINGLE,
@@ -58,8 +66,9 @@ export default function App() {
       contactInfo: safeData.contactInfo,
       swissConfig: safeData.swissConfig,
       groupKnockoutConfig: safeData.groupKnockoutConfig,
+      groupRankChanges: safeData.groupRankChanges || {},
       currentRound: typeof safeData.currentRound === 'number' ? safeData.currentRound : 1,
-    };
+    });
   };
 
   useEffect(() => {
@@ -143,7 +152,7 @@ export default function App() {
     format: TournamentFormat,
     teams: Team[],
     swissConfig?: SwissConfig,
-    groupKnockoutConfig?: GroupKnockoutConfig,
+    groupKnockoutConfig?: GroupKnockoutConfig
   ) => {
     const matches = generateMatches(format, teams, swissConfig, groupKnockoutConfig);
     const newTournament: Tournament = {
@@ -159,19 +168,21 @@ export default function App() {
       currentRound: 1
     };
 
+    const syncedTournament = applyTournamentAutoSync(newTournament);
+
     try {
       await client.post('/api/tournaments/', {
-        id: newTournament.id,
-        name: newTournament.name,
-        data: newTournament,
+        id: syncedTournament.id,
+        name: syncedTournament.name,
+        data: syncedTournament,
       });
-      window.history.pushState({}, '', `/${newTournament.id}`);
-      setTournament(newTournament);
+      window.history.pushState({}, '', `/${syncedTournament.id}`);
+      setTournament(syncedTournament);
       setView('tournament');
        setActiveTab(format === TournamentFormat.GROUP_KNOCKOUT ? 'groups' : 'matches');
     } catch (error) {
       console.error('Failed to save tournament:', error);
-      setTournament(newTournament);
+      setTournament(syncedTournament);
       setView('tournament');
     }
   };
@@ -216,7 +227,7 @@ export default function App() {
     const t = tournaments.find(t => t.id === id);
     if (!t) return;
 
-    const updatedTournament = { ...t.data, name: newName };
+      const updatedTournament = applyTournamentAutoSync({ ...t.data, name: newName });
     
     try {
       await client.patch(`/api/tournaments/${id}`, { name: newName, data: updatedTournament });
@@ -283,6 +294,10 @@ export default function App() {
 
   const updateMatchScore = async (matchId: string, scoreA: number, scoreB: number) => {
     if (!tournament) return;
+
+    const previousGroupStandings = tournament.format === TournamentFormat.GROUP_KNOCKOUT
+      ? calculateGroupStandings(syncGroupQualifierMatches(tournament))
+      : [];
 
     const updatedMatches = tournament.matches.map(m => {
       if (m.id === matchId) {
@@ -375,10 +390,36 @@ export default function App() {
       }
     }
 
-    const tournamentWithUpdatedMatches = { ...tournament, matches: updatedMatches };
-    const updatedTournament = tournament.format === TournamentFormat.GROUP_KNOCKOUT
-      ? syncGroupQualifierMatches(tournamentWithUpdatedMatches)
-      : tournamentWithUpdatedMatches;
+    let updatedTournament = { ...tournament, matches: updatedMatches };
+
+    // Sync qualifiers if in Group Knockout format
+    if (updatedTournament.format === TournamentFormat.GROUP_KNOCKOUT) {
+      updatedTournament = syncGroupQualifierMatches(updatedTournament);
+    }
+
+    if (tournament.format === TournamentFormat.GROUP_KNOCKOUT) {
+      const previousPositions = new Map<string, number>();
+      const nextPositions = new Map<string, number>();
+
+      previousGroupStandings.forEach((group) => {
+        group.standings.forEach((standing, index) => {
+          previousPositions.set(standing.teamId, index + 1);
+        });
+      });
+
+      calculateGroupStandings(updatedTournament).forEach((group) => {
+        group.standings.forEach((standing, index) => {
+          nextPositions.set(standing.teamId, index + 1);
+        });
+      });
+
+      updatedTournament.groupRankChanges = Object.fromEntries(
+        Array.from(nextPositions.entries())
+          .filter(([teamId, current]) => previousPositions.get(teamId) && previousPositions.get(teamId) !== current)
+          .map(([teamId, current]) => [teamId, { previous: previousPositions.get(teamId)!, current }]),
+      );
+    }
+
     setTournament(updatedTournament);
 
     if (isDemoMode) return;
@@ -411,7 +452,7 @@ export default function App() {
       };
     });
 
-    const updatedTournament = syncGroupQualifierMatches({ ...tournament, matches: updatedMatches });
+    const updatedTournament = applyTournamentAutoSync({ ...tournament, matches: updatedMatches });
     setTournament(updatedTournament);
 
     if (isDemoMode) return;
@@ -444,7 +485,9 @@ export default function App() {
       createdAt: Date.now(),
     };
 
-    setTournament(updatedTournament);
+    const syncedTournament = applyTournamentAutoSync(updatedTournament);
+
+    setTournament(syncedTournament);
     setView('tournament');
     window.history.pushState({}, '', `/${tournament.id}`);
     
@@ -453,7 +496,7 @@ export default function App() {
     const t = tournaments.find(t => t.data.id === tournament.id);
     if (t) {
       try {
-        await client.patch(`/api/tournaments/${t.id}`, { data: updatedTournament });
+        await client.patch(`/api/tournaments/${t.id}`, { data: syncedTournament });
         const response = await client.get('/api/tournaments/');
         const data = response.data;
         const normalized = Array.isArray(data)
@@ -470,12 +513,13 @@ export default function App() {
   };
 
   const updateTournamentData = async (updated: Tournament) => {
-    setTournament(updated);
+    const syncedTournament = applyTournamentAutoSync(updated);
+    setTournament(syncedTournament);
     if (isDemoMode) return;
-    const t = tournaments.find(t => t.data.id === updated.id);
+    const t = tournaments.find(t => t.data.id === syncedTournament.id);
     if (t) {
       try {
-        await client.patch(`/api/tournaments/${t.id}`, { data: updated });
+        await client.patch(`/api/tournaments/${t.id}`, { data: syncedTournament });
         const response = await client.get('/api/tournaments/');
         const data = response.data;
         const normalized = Array.isArray(data)

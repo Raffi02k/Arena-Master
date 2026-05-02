@@ -543,7 +543,9 @@ export const calculateStandings = (teams: Team[], matches: Match[], pointsConfig
 };
 
 export const calculateGroupStandings = (tournament: Tournament): Array<{ groupName: string; standings: Standing[] }> => {
-  const groups = tournament.groupKnockoutConfig?.groups || [];
+  const groups = tournament.groupKnockoutConfig?.groups?.length
+    ? tournament.groupKnockoutConfig.groups
+    : deriveGroupsFromTeams(tournament.teams);
   const groupMatches = tournament.matches.filter((match) => match.stage === 'GROUP');
 
   return groups.map((group) => {
