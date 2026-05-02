@@ -52,10 +52,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogIn, onView
       <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center shadow-[0_0_20px_rgba(34,197,94,0.4)]">
-              <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
-            </div>
-            <span className="text-xl sm:text-2xl font-bold tracking-tight">Arena</span>
+            <img src="/logo.png" alt="Arena Master Logo" className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg shadow-[0_0_20px_rgba(34,197,94,0.4)] object-cover" />
+            <span className="text-xl sm:text-2xl font-black tracking-tighter uppercase italic">Arena Master</span>
           </div>
           <div className="flex items-center gap-3 sm:gap-8">
             <button 
@@ -218,12 +216,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogIn, onView
       <footer className="py-12 sm:py-20 px-4 sm:px-6 border-t border-zinc-900">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 sm:gap-8">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-xl font-bold">Arena</span>
+            <img src="/logo.png" alt="Arena Master Logo" className="w-8 h-8 rounded shrink-0 object-cover" />
+            <span className="text-xl font-black tracking-tighter uppercase italic">Arena Master</span>
           </div>
-          <p className="text-zinc-500 text-sm">© 2024 Arena Tournament Generator. All rights reserved.</p>
+          <p className="text-zinc-500 text-sm">© 2024 Arena Master Tournament Generator. All rights reserved.</p>
         </div>
       </footer>
     </div>

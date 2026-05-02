@@ -202,7 +202,10 @@ export const TournamentSetup: React.FC<TournamentSetupProps> = ({ t, onStart }) 
           />
         </div>
         <div className="space-y-2">
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-white uppercase italic">Arena</h1>
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <img src="/logo.png" alt="Logo" className="w-12 h-12 rounded-xl shadow-lg object-cover" />
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-white uppercase italic">Arena Master</h1>
+          </div>
           <p className="text-zinc-500 font-bold tracking-[0.2em] uppercase text-xs">Tournament Generator</p>
         </div>
       </motion.div>

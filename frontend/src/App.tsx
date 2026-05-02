@@ -639,11 +639,9 @@ export default function App() {
 
   const Sidebar = () => (
     <aside className="w-64 bg-zinc-950 border-r border-zinc-900 flex flex-col h-screen sticky top-0">
-      <div className="p-8 flex items-center gap-3">
-        <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
-          <Trophy className="w-5 h-5 text-black" />
-        </div>
-        <span className="text-xl font-black">Arena</span>
+      <div className="px-8 py-10 flex items-center gap-3">
+        <img src="/logo.png" alt="Arena Master Logo" className="w-8 h-8 rounded shrink-0 object-cover" />
+        <span className="text-xl font-black tracking-tighter uppercase italic">Arena Master</span>
       </div>
       
       <nav className="flex-1 px-4 py-4 space-y-2">
