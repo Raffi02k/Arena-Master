@@ -142,15 +142,33 @@ const createKnockoutRoundsFromSources = (sourceMatches: Match[], startingRound: 
   return knockoutMatches;
 };
 
-const deriveGroupsFromTeams = (teams: Team[]): GroupDefinition[] => {
-  const groupedTeams = teams.reduce<Map<string, string[]>>((acc, team) => {
-    if (!team.groupName) return acc;
+const deriveGroupsFromTeams = (teams: Team[], matches: Match[] = []): GroupDefinition[] => {
+  const groupedTeams = new Map<string, string[]>();
 
-    const existing = acc.get(team.groupName) || [];
-    existing.push(team.id);
-    acc.set(team.groupName, existing);
-    return acc;
-  }, new Map());
+  teams.forEach((team) => {
+    if (team.groupName) {
+      const existing = groupedTeams.get(team.groupName) || [];
+      if (!existing.includes(team.id)) {
+        existing.push(team.id);
+        groupedTeams.set(team.groupName, existing);
+      }
+    }
+  });
+
+  if (groupedTeams.size === 0) {
+    matches.forEach((m) => {
+      if (m.stage === 'GROUP' && m.groupName) {
+        const ids = [m.teamAId, m.teamBId];
+        const existing = groupedTeams.get(m.groupName) || [];
+        ids.forEach((id) => {
+          if (id && id !== 'BYE' && !existing.includes(id)) {
+            existing.push(id);
+          }
+        });
+        groupedTeams.set(m.groupName, existing);
+      }
+    });
+  }
 
   return Array.from(groupedTeams.entries()).map(([name, teamIds]) => ({ name, teamIds }));
 };
@@ -166,7 +184,7 @@ export const generateGroupDefinitions = (
     }));
   }
 
-  return deriveGroupsFromTeams(teams);
+  return deriveGroupsFromTeams(teams, config.groups.length === 0 ? [] : []); // Placeholder for matches if needed
 };
 
 export const generateMatches = (
@@ -545,7 +563,7 @@ export const calculateStandings = (teams: Team[], matches: Match[], pointsConfig
 export const calculateGroupStandings = (tournament: Tournament): Array<{ groupName: string; standings: Standing[] }> => {
   const groups = tournament.groupKnockoutConfig?.groups?.length
     ? tournament.groupKnockoutConfig.groups
-    : deriveGroupsFromTeams(tournament.teams);
+    : deriveGroupsFromTeams(tournament.teams, tournament.matches);
   const groupMatches = tournament.matches.filter((match) => match.stage === 'GROUP');
 
   return groups.map((group) => {
@@ -561,22 +579,40 @@ export const calculateGroupStandings = (tournament: Tournament): Array<{ groupNa
 };
 
 export const syncGroupQualifierMatches = (tournament: Tournament): Tournament => {
-  if (tournament.format !== TournamentFormat.GROUP_KNOCKOUT || !tournament.groupKnockoutConfig) {
+  if (tournament.format !== TournamentFormat.GROUP_KNOCKOUT) {
     return tournament;
   }
 
-  const standingsByGroup = new Map(
-    calculateGroupStandings(tournament).map((group) => [group.groupName, group.standings]),
-  );
+  const standingsEntries = calculateGroupStandings(tournament).map((group) => [group.groupName.toLowerCase().trim(), group.standings]);
+  const standingsByGroup = new Map<string, Standing[]>(standingsEntries as [string, Standing[]][]);
 
   const matches = tournament.matches.map((match) => {
     if (match.stage !== 'QUALIFIER') return match;
 
-    const teamAId = match.sourceGroupA
-      ? match.qualifierOverrideTeamAId || standingsByGroup.get(match.sourceGroupA)?.[Math.max(0, (match.sourcePositionA || 1) - 1)]?.teamId || ''
+    const keyA = match.sourceGroupA?.toLowerCase().trim();
+    const keyB = match.sourceGroupB?.toLowerCase().trim();
+
+    // Try to find the group even if naming is slightly off (e.g. "Group A" vs "A")
+    const findStandings = (key?: string) => {
+      if (!key) return undefined;
+      let s = standingsByGroup.get(key);
+      if (!s) {
+        // Fallback: try to match just the last part (e.g. if key is "group a", try to find just "a" or vice versa)
+        const entries = Array.from(standingsByGroup.entries());
+        const match = entries.find(([k]) => k.includes(key) || key.includes(k));
+        s = match?.[1];
+      }
+      return s;
+    };
+
+    const standingsA = findStandings(keyA);
+    const standingsB = findStandings(keyB);
+
+    const teamAId = keyA
+      ? standingsA?.[Math.max(0, (match.sourcePositionA || 1) - 1)]?.teamId || ''
       : match.teamAId;
-    const teamBId = match.sourceGroupB
-      ? match.qualifierOverrideTeamBId || standingsByGroup.get(match.sourceGroupB)?.[Math.max(0, (match.sourcePositionB || 1) - 1)]?.teamId || ''
+    const teamBId = keyB
+      ? standingsB?.[Math.max(0, (match.sourcePositionB || 1) - 1)]?.teamId || ''
       : match.teamBId;
 
     const teamsChanged = teamAId !== match.teamAId || teamBId !== match.teamBId;
@@ -620,4 +656,43 @@ export const buildGroupDraw = (
       .slice(index * teamsPerGroup, index * teamsPerGroup + teamsPerGroup)
       .map((team) => team.id),
   }));
+};
+export const calculatePodium = (tournament: Tournament): { first?: Team; second?: Team; third?: Team } => {
+  if (tournament.format === TournamentFormat.LEAGUE_SINGLE || tournament.format === TournamentFormat.LEAGUE_DOUBLE || tournament.format === TournamentFormat.SWISS) {
+    const standings = calculateStandings(tournament.teams, tournament.matches, tournament.pointsConfig);
+    return {
+      first: tournament.teams.find(t => t.id === standings[0]?.teamId),
+      second: tournament.teams.find(t => t.id === standings[1]?.teamId),
+      third: tournament.teams.find(t => t.id === standings[2]?.teamId),
+    };
+  }
+
+  // Bracket based (Group Knockout, Elimination)
+  const knockoutMatches = tournament.matches.filter(m => m.stage === 'KNOCKOUT' || m.stage === 'QUALIFIER');
+  if (knockoutMatches.length === 0) return {};
+
+  const maxRound = Math.max(...knockoutMatches.map(m => m.round));
+  const final = knockoutMatches.find(m => m.round === maxRound && m.status === MatchStatus.PLAYED);
+  
+  const podium: { first?: Team; second?: Team; third?: Team } = {};
+
+  if (final) {
+    podium.first = tournament.teams.find(t => t.id === final.winnerId);
+    podium.second = tournament.teams.find(t => t.id === (final.winnerId === final.teamAId ? final.teamBId : final.teamAId));
+    
+    // Find Semifinalists (next round down)
+    const semis = knockoutMatches.filter(m => m.round === maxRound - 1);
+    const semiLosers = semis
+      .filter(m => m.status === MatchStatus.PLAYED)
+      .map(m => m.winnerId === m.teamAId ? m.teamBId : m.teamAId)
+      .filter(id => id && id !== 'BYE');
+    
+    if (semiLosers.length > 0) {
+      // Pick best loser based on group standings or total points if applicable
+      // For now, just pick the first one or we could add logic
+      podium.third = tournament.teams.find(t => t.id === semiLosers[0]);
+    }
+  }
+
+  return podium;
 };

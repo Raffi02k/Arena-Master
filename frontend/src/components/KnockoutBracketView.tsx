@@ -20,7 +20,8 @@ const BracketMatchCard: React.FC<{
   match: Match;
   teams: Team[];
   onUpdateScore: (matchId: string, scoreA: number, scoreB: number) => void;
-}> = ({ match, teams, onUpdateScore }) => {
+  isFinal?: boolean;
+}> = ({ match, teams, onUpdateScore, isFinal }) => {
   const [scoreA, setScoreA] = React.useState(match.scoreA?.toString() || '');
   const [scoreB, setScoreB] = React.useState(match.scoreB?.toString() || '');
 
@@ -56,9 +57,16 @@ const BracketMatchCard: React.FC<{
 
         return (
           <div key={`${match.id}-${index}`} className="flex items-center justify-between gap-3 rounded-2xl bg-zinc-950/60 border border-zinc-800 px-3 py-3 mb-3 last:mb-0">
-            <span className={`min-w-0 truncate text-sm font-black uppercase ${isWinner ? 'text-white' : 'text-zinc-400'}`}>
-              {row.teamId ? getTeamName(row.teamId) : 'TBD'}
-            </span>
+            <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+              <span className={`truncate text-sm font-black uppercase ${isWinner ? 'text-zinc-100' : 'text-zinc-500'}`}>
+                {row.teamId ? getTeamName(row.teamId) : 'TBD'}
+              </span>
+              {isWinner && isFinal && (
+                <span className="flex-shrink-0 animate-pulse bg-green-500 text-[8px] font-black italic px-1.5 py-0.5 rounded text-black leading-none">
+                  CHAMPION
+                </span>
+              )}
+            </div>
             <input
               type="number"
               min="0"
@@ -102,7 +110,7 @@ export const KnockoutBracketView: React.FC<KnockoutBracketViewProps> = ({ tourna
 
       <div className="overflow-x-auto pb-4">
         <div className="flex items-start gap-6 min-w-max">
-          {rounds.map(([round, matches]) => (
+          {(rounds as [string, Match[]][]).map(([round, matches]) => (
             <motion.div
               key={round}
               initial={{ opacity: 0, x: 16 }}
@@ -121,6 +129,7 @@ export const KnockoutBracketView: React.FC<KnockoutBracketViewProps> = ({ tourna
                     match={match}
                     teams={tournament.teams}
                     onUpdateScore={onUpdateScore}
+                    isFinal={Number(round) === Number(rounds[rounds.length - 1]?.[0])}
                   />
                 ))}
               </div>

@@ -8,6 +8,90 @@ interface OverviewProps {
   onUpdateTournament: (updated: Tournament) => void;
 }
 
+import { calculatePodium } from '../logic/tournamentLogic';
+
+interface OverviewProps {
+  tournament: Tournament;
+  onUpdateTournament: (updated: Tournament) => void;
+}
+
+const Podium: React.FC<{ tournament: Tournament }> = ({ tournament }) => {
+  const { first, second, third } = calculatePodium(tournament);
+  
+  if (!first && !second && !third) return null;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="mb-8 p-8 rounded-[40px] bg-[linear-gradient(135deg,rgba(24,24,27,0.9),rgba(9,9,11,0.95))] border border-zinc-800 relative overflow-hidden shadow-2xl"
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,197,94,0.1),transparent_70%)]" />
+      
+      <div className="relative z-10 text-center mb-10">
+        <h2 className="text-sm font-black uppercase tracking-[0.4em] text-green-500 mb-2">Final Results</h2>
+        <div className="text-4xl sm:text-5xl font-black text-white italic tracking-tighter uppercase">Tournament Podium</div>
+      </div>
+
+      <div className="relative z-10 flex flex-col sm:row items-center sm:items-end justify-center gap-6 sm:gap-4 max-w-4xl mx-auto pt-8">
+        {/* 2nd Place */}
+        {second && (
+          <div className="order-2 sm:order-1 flex flex-col items-center group">
+            <div className="mb-4 relative">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xl font-black text-zinc-400 shadow-xl group-hover:border-zinc-500 transition-all">
+                {second.name.substring(0, 2).toUpperCase()}
+              </div>
+              <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center text-xs font-black text-zinc-300">2nd</div>
+            </div>
+            <div className="text-center">
+              <div className="font-bold text-zinc-300 uppercase tracking-tight mb-1">{second.name}</div>
+              <div className="h-16 w-16 sm:w-20 sm:h-24 bg-zinc-800/40 border-t border-zinc-700 rounded-t-xl mt-2" />
+            </div>
+          </div>
+        )}
+
+        {/* 1st Place */}
+        {first && (
+          <div className="order-1 sm:order-2 flex flex-col items-center group -mt-8 sm:-mt-12">
+            <div className="mb-6 relative">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[linear-gradient(135deg,rgba(34,197,94,0.2),rgba(34,197,94,0.05))] border-2 border-green-500 flex items-center justify-center text-3xl font-black text-green-400 shadow-[0_0_40px_rgba(34,197,94,0.2)] group-hover:scale-105 transition-all">
+                {first.name.substring(0, 2).toUpperCase()}
+                <Trophy className="absolute -top-10 w-12 h-12 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-bounce" />
+              </div>
+              <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-green-500 border-2 border-zinc-900 flex items-center justify-center text-sm font-black text-black">1st</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl font-black text-white uppercase tracking-tight mb-2 drop-shadow-md">{first.name}</div>
+              <div className="h-24 w-24 sm:w-28 sm:h-36 bg-[linear-gradient(to_bottom,rgba(34,197,94,0.2),rgba(34,197,94,0.05))] border-t-2 border-green-500/50 rounded-t-2xl shadow-[0_-10px_30px_rgba(34,197,94,0.1)]" />
+            </div>
+          </div>
+        )}
+
+        {/* 3rd Place */}
+        {third && (
+          <div className="order-3 sm:order-3 flex flex-col items-center group">
+            <div className="mb-4 relative">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xl font-black text-orange-400 shadow-xl group-hover:border-orange-500/30 transition-all">
+                {third.name.substring(0, 2).toUpperCase()}
+              </div>
+              <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-orange-900/50 border-2 border-zinc-900 flex items-center justify-center text-xs font-black text-orange-500">3rd</div>
+            </div>
+            <div className="text-center">
+              <div className="font-bold text-zinc-300 uppercase tracking-tight mb-1">{third.name}</div>
+              <div className="h-12 w-16 sm:w-20 sm:h-16 bg-zinc-800/20 border-t border-zinc-700 rounded-t-xl mt-2" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Confetti-like decoration circles */}
+      <div className="absolute top-10 left-10 w-2 h-2 rounded-full bg-green-500 animate-ping" />
+      <div className="absolute top-20 right-20 w-1 h-1 rounded-full bg-yellow-500 animate-ping delay-300" />
+      <div className="absolute bottom-40 left-1/4 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+    </motion.div>
+  );
+};
+
 const Overview: React.FC<OverviewProps> = ({ tournament, onUpdateTournament }) => {
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -62,6 +146,7 @@ const Overview: React.FC<OverviewProps> = ({ tournament, onUpdateTournament }) =
 
   return (
     <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto pb-16 sm:pb-20 px-0">
+      <Podium tournament={tournament} />
       {/* Hero Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <motion.div 

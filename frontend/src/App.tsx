@@ -431,38 +431,6 @@ export default function App() {
     }
   };
 
-  const updateQualifierTeams = async (matchId: string, teamAId: string, teamBId: string) => {
-    if (!tournament) return;
-
-    const updatedMatches = tournament.matches.map((match) => {
-      if (match.id !== matchId || match.stage !== 'QUALIFIER') {
-        return match;
-      }
-
-      return {
-        ...match,
-        qualifierOverrideTeamAId: teamAId || undefined,
-        qualifierOverrideTeamBId: teamBId || undefined,
-        teamAId: teamAId || '',
-        teamBId: teamBId || '',
-        scoreA: undefined,
-        scoreB: undefined,
-        winnerId: undefined,
-        status: MatchStatus.UNPLAYED,
-      };
-    });
-
-    const updatedTournament = applyTournamentAutoSync({ ...tournament, matches: updatedMatches });
-    setTournament(updatedTournament);
-
-    if (isDemoMode) return;
-
-    try {
-      await client.patch(`/api/tournaments/${tournament.id}`, { data: updatedTournament });
-    } catch (error) {
-      console.error('Failed to update qualifier teams:', error);
-    }
-  };
 
   const restartTournament = async () => {
     if (!tournament) return;
@@ -1048,7 +1016,6 @@ export default function App() {
                     <MatchList 
                       tournament={tournament}
                       onUpdateScore={updateMatchScore} 
-                      onUpdateQualifierTeams={updateQualifierTeams}
                     />
                   </motion.div>
                 ) : activeTab === 'groups' ? (

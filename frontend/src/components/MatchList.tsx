@@ -7,17 +7,15 @@ import { motion } from 'motion/react';
 interface MatchListProps {
   tournament: Tournament;
   onUpdateScore: (matchId: string, scoreA: number, scoreB: number) => void;
-  onUpdateQualifierTeams: (matchId: string, teamAId: string, teamBId: string) => void;
 }
 
 interface MatchItemProps {
   match: Match;
   teams: Team[];
   onUpdateScore: (matchId: string, scoreA: number, scoreB: number) => void;
-  onUpdateQualifierTeams: (matchId: string, teamAId: string, teamBId: string) => void;
 }
 
-const MatchItem: React.FC<MatchItemProps> = ({ match, teams, onUpdateScore, onUpdateQualifierTeams }) => {
+const MatchItem: React.FC<MatchItemProps> = ({ match, teams, onUpdateScore }) => {
   const [localScoreA, setLocalScoreA] = React.useState<string>(match.scoreA?.toString() || '');
   const [localScoreB, setLocalScoreB] = React.useState<string>(match.scoreB?.toString() || '');
 
@@ -82,45 +80,6 @@ const MatchItem: React.FC<MatchItemProps> = ({ match, teams, onUpdateScore, onUp
         )}
       </div>
 
-      {isQualifier && (
-        <div className="mb-5 rounded-2xl border border-zinc-800 bg-zinc-950/70 p-3 sm:p-4 space-y-3">
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">
-            <Wand2 className="w-3 h-3" /> Qualifier slots
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-600">
-                {match.sourceGroupA ? `${match.sourcePositionA}${match.sourceGroupA.replace('Group ', '')}` : 'Team A'}
-              </div>
-              <select
-                value={match.qualifierOverrideTeamAId || match.teamAId || ''}
-                onChange={(e) => onUpdateQualifierTeams(match.id, e.target.value, match.qualifierOverrideTeamBId || match.teamBId || '')}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-100"
-              >
-                <option value="">Auto</option>
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>{team.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-600">
-                {match.sourceGroupB ? `${match.sourcePositionB}${match.sourceGroupB.replace('Group ', '')}` : 'Team B'}
-              </div>
-              <select
-                value={match.qualifierOverrideTeamBId || match.teamBId || ''}
-                onChange={(e) => onUpdateQualifierTeams(match.id, match.qualifierOverrideTeamAId || match.teamAId || '', e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm font-bold text-zinc-100"
-              >
-                <option value="">Auto</option>
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>{team.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
@@ -178,8 +137,7 @@ const StageSection: React.FC<{
   matches: Match[];
   teams: Team[];
   onUpdateScore: (matchId: string, scoreA: number, scoreB: number) => void;
-  onUpdateQualifierTeams: (matchId: string, teamAId: string, teamBId: string) => void;
-}> = ({ title, icon, description, matches, teams, onUpdateScore, onUpdateQualifierTeams }) => {
+}> = ({ title, icon, description, matches, teams, onUpdateScore }) => {
   const groupedMatches = matches.reduce((acc, match) => {
     if (!acc[match.round]) acc[match.round] = [];
     acc[match.round].push(match);
@@ -198,7 +156,7 @@ const StageSection: React.FC<{
         <p className="text-sm text-zinc-400">{description}</p>
       </div>
 
-      {Object.entries(groupedMatches).map(([round, roundMatches]) => (
+      {(Object.entries(groupedMatches) as [string, Match[]][]).map(([round, roundMatches]) => (
         <div key={round} className="space-y-6">
           <div className="flex items-center gap-4">
             <div className="h-px flex-1 bg-zinc-800" />
@@ -215,7 +173,6 @@ const StageSection: React.FC<{
                 match={match}
                 teams={teams}
                 onUpdateScore={onUpdateScore}
-                onUpdateQualifierTeams={onUpdateQualifierTeams}
               />
             ))}
           </div>
@@ -225,7 +182,7 @@ const StageSection: React.FC<{
   );
 };
 
-export const MatchList: React.FC<MatchListProps> = ({ tournament, onUpdateScore, onUpdateQualifierTeams }) => {
+export const MatchList: React.FC<MatchListProps> = ({ tournament, onUpdateScore }) => {
   const teams = tournament.teams;
   const groupMatches = tournament.matches.filter((match) => match.stage === 'GROUP');
   const qualifierMatches = tournament.matches.filter((match) => match.stage === 'QUALIFIER');
@@ -278,17 +235,15 @@ export const MatchList: React.FC<MatchListProps> = ({ tournament, onUpdateScore,
         matches={groupMatches}
         teams={teams}
         onUpdateScore={onUpdateScore}
-        onUpdateQualifierTeams={onUpdateQualifierTeams}
       />
 
       <StageSection
         title="Qualifiers"
         icon={<Swords className="w-5 h-5 text-green-500" />}
-        description="Automatic from group standings, with optional manual override per slot."
+        description="Automatically populated based on group standings."
         matches={qualifierMatches}
         teams={teams}
         onUpdateScore={onUpdateScore}
-        onUpdateQualifierTeams={onUpdateQualifierTeams}
       />
 
       <StageSection
@@ -298,7 +253,6 @@ export const MatchList: React.FC<MatchListProps> = ({ tournament, onUpdateScore,
         matches={otherMatches}
         teams={teams}
         onUpdateScore={onUpdateScore}
-        onUpdateQualifierTeams={onUpdateQualifierTeams}
       />
     </div>
   );
