@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Tournament, TournamentFormat, Team, Match, MatchStatus } from './types';
-import { generateMatches, calculateStandings, generateSwissRound } from './logic/tournamentLogic';
+import { Tournament, TournamentFormat, Team, Match, MatchStatus, GroupKnockoutConfig } from './types';
+import { generateMatches, calculateStandings, generateSwissRound, syncGroupQualifierMatches } from './logic/tournamentLogic';
 import { translations, Language, TranslationKey } from './i18n';
 import { TournamentSetup } from './components/TournamentSetup';
 import { MatchList } from './components/MatchList';
@@ -9,6 +9,8 @@ import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import TeamsView from './components/TeamsView';
 import Overview from './components/Overview';
+import { GroupStageView } from './components/GroupStageView';
+import { KnockoutBracketView } from './components/KnockoutBracketView';
 import Settings from './components/Settings';
 import { TournamentInfo } from './components/TournamentInfo';
 import { getDemoTournaments } from './demoData';
@@ -29,7 +31,7 @@ export default function App() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'matches' | 'standings' | 'teams'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'matches' | 'standings' | 'teams' | 'groups' | 'bracket'>('overview');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
@@ -53,7 +55,9 @@ export default function App() {
       matches: Array.isArray(safeData.matches) ? safeData.matches : [],
       createdAt: typeof safeData.createdAt === 'number' ? safeData.createdAt : Date.now(),
       pointsConfig: safeData.pointsConfig || appSettings.defaultPoints,
+      contactInfo: safeData.contactInfo,
       swissConfig: safeData.swissConfig,
+      groupKnockoutConfig: safeData.groupKnockoutConfig,
       currentRound: typeof safeData.currentRound === 'number' ? safeData.currentRound : 1,
     };
   };
@@ -134,8 +138,14 @@ export default function App() {
     }
   }, [view, user]);
 
-  const startTournament = async (name: string, format: TournamentFormat, teams: Team[], swissConfig?: SwissConfig) => {
-    const matches = generateMatches(format, teams, swissConfig);
+  const startTournament = async (
+    name: string,
+    format: TournamentFormat,
+    teams: Team[],
+    swissConfig?: SwissConfig,
+    groupKnockoutConfig?: GroupKnockoutConfig,
+  ) => {
+    const matches = generateMatches(format, teams, swissConfig, groupKnockoutConfig);
     const newTournament: Tournament = {
       id: crypto.randomUUID(),
       name,
@@ -145,6 +155,7 @@ export default function App() {
       createdAt: Date.now(),
       pointsConfig: appSettings.defaultPoints,
       swissConfig,
+      groupKnockoutConfig,
       currentRound: 1
     };
 
@@ -157,7 +168,7 @@ export default function App() {
       window.history.pushState({}, '', `/${newTournament.id}`);
       setTournament(newTournament);
       setView('tournament');
-      setActiveTab('matches');
+       setActiveTab(format === TournamentFormat.GROUP_KNOCKOUT ? 'groups' : 'matches');
     } catch (error) {
       console.error('Failed to save tournament:', error);
       setTournament(newTournament);
@@ -188,7 +199,7 @@ export default function App() {
       setTournament(normalizeTournamentData(t.data));
       window.history.pushState({}, '', `/${id}`);
       setView('tournament');
-      setActiveTab('overview');
+      setActiveTab(normalizeTournamentData(t.data).format === TournamentFormat.GROUP_KNOCKOUT ? 'groups' : 'overview');
     }
   };
 
@@ -281,7 +292,11 @@ export default function App() {
       return m;
     });
 
-    if (tournament.format === TournamentFormat.SINGLE_ELIMINATION || tournament.format === TournamentFormat.KNOCKOUT_HOME_AWAY) {
+    if (
+      tournament.format === TournamentFormat.SINGLE_ELIMINATION ||
+      tournament.format === TournamentFormat.KNOCKOUT_HOME_AWAY ||
+      tournament.format === TournamentFormat.GROUP_KNOCKOUT
+    ) {
       const isDoubleLeg = tournament.format === TournamentFormat.KNOCKOUT_HOME_AWAY;
       const completedMatch = updatedMatches.find(m => m.id === matchId)!;
       
@@ -360,7 +375,10 @@ export default function App() {
       }
     }
 
-    const updatedTournament = { ...tournament, matches: updatedMatches };
+    const tournamentWithUpdatedMatches = { ...tournament, matches: updatedMatches };
+    const updatedTournament = tournament.format === TournamentFormat.GROUP_KNOCKOUT
+      ? syncGroupQualifierMatches(tournamentWithUpdatedMatches)
+      : tournamentWithUpdatedMatches;
     setTournament(updatedTournament);
 
     if (isDemoMode) return;
@@ -372,6 +390,39 @@ export default function App() {
     }
   };
 
+  const updateQualifierTeams = async (matchId: string, teamAId: string, teamBId: string) => {
+    if (!tournament) return;
+
+    const updatedMatches = tournament.matches.map((match) => {
+      if (match.id !== matchId || match.stage !== 'QUALIFIER') {
+        return match;
+      }
+
+      return {
+        ...match,
+        qualifierOverrideTeamAId: teamAId || undefined,
+        qualifierOverrideTeamBId: teamBId || undefined,
+        teamAId: teamAId || '',
+        teamBId: teamBId || '',
+        scoreA: undefined,
+        scoreB: undefined,
+        winnerId: undefined,
+        status: MatchStatus.UNPLAYED,
+      };
+    });
+
+    const updatedTournament = syncGroupQualifierMatches({ ...tournament, matches: updatedMatches });
+    setTournament(updatedTournament);
+
+    if (isDemoMode) return;
+
+    try {
+      await client.patch(`/api/tournaments/${tournament.id}`, { data: updatedTournament });
+    } catch (error) {
+      console.error('Failed to update qualifier teams:', error);
+    }
+  };
+
   const restartTournament = async () => {
     if (!tournament) return;
 
@@ -379,7 +430,12 @@ export default function App() {
     const shuffledTeams = [...tournament.teams].sort(() => Math.random() - 0.5);
     
     // Generate new matches
-    const newMatches = generateMatches(tournament.format, shuffledTeams);
+    const newMatches = generateMatches(
+      tournament.format,
+      shuffledTeams,
+      tournament.swissConfig,
+      tournament.groupKnockoutConfig,
+    );
     
     const updatedTournament: Tournament = {
       ...tournament,
@@ -867,6 +923,32 @@ export default function App() {
                   <Swords className="w-4 h-4" />
                   <span className="font-bold">{t('matches')}</span>
                 </button>
+                {tournament.format === TournamentFormat.GROUP_KNOCKOUT && (
+                  <>
+                    <button
+                      onClick={() => setActiveTab('groups')}
+                      className={`flex items-center gap-2 py-5 border-b-2 transition-all ${
+                        activeTab === 'groups'
+                          ? 'border-green-500 text-green-500'
+                          : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span className="font-bold">Groups</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('bracket')}
+                      className={`flex items-center gap-2 py-5 border-b-2 transition-all ${
+                        activeTab === 'bracket'
+                          ? 'border-green-500 text-green-500'
+                          : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      <span className="font-bold">Bracket</span>
+                    </button>
+                  </>
+                )}
                 {isLeague && (
                   <button
                     onClick={() => setActiveTab('standings')}
@@ -920,10 +1002,28 @@ export default function App() {
                     exit={{ opacity: 0, y: -10 }}
                   >
                     <MatchList 
-                      matches={tournament.matches} 
-                      teams={tournament.teams} 
+                      tournament={tournament}
                       onUpdateScore={updateMatchScore} 
+                      onUpdateQualifierTeams={updateQualifierTeams}
                     />
+                  </motion.div>
+                ) : activeTab === 'groups' ? (
+                  <motion.div
+                    key="groups"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <GroupStageView tournament={tournament} onUpdateScore={updateMatchScore} />
+                  </motion.div>
+                ) : activeTab === 'bracket' ? (
+                  <motion.div
+                    key="bracket"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <KnockoutBracketView tournament={tournament} onUpdateScore={updateMatchScore} />
                   </motion.div>
                 ) : (
                   <motion.div

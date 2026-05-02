@@ -106,6 +106,55 @@ const createQualifierMatches = (groups: GroupDefinition[], startingRound: number
   return qualifiers;
 };
 
+const createKnockoutRoundsFromSources = (sourceMatches: Match[], startingRound: number): Match[] => {
+  const knockoutMatches: Match[] = [];
+  let currentRoundSources = sourceMatches;
+  let round = startingRound;
+
+  while (currentRoundSources.length > 1) {
+    const nextRoundMatches: Match[] = [];
+
+    for (let i = 0; i < currentRoundSources.length; i += 2) {
+      const sourceA = currentRoundSources[i];
+      const sourceB = currentRoundSources[i + 1];
+
+      if (!sourceA || !sourceB) continue;
+
+      const nextMatch: Match = {
+        id: crypto.randomUUID(),
+        round,
+        teamAId: '',
+        teamBId: '',
+        status: MatchStatus.UNPLAYED,
+        stage: 'KNOCKOUT',
+      };
+
+      sourceA.nextMatchId = nextMatch.id;
+      sourceB.nextMatchId = nextMatch.id;
+      nextRoundMatches.push(nextMatch);
+      knockoutMatches.push(nextMatch);
+    }
+
+    currentRoundSources = nextRoundMatches;
+    round += 1;
+  }
+
+  return knockoutMatches;
+};
+
+const deriveGroupsFromTeams = (teams: Team[]): GroupDefinition[] => {
+  const groupedTeams = teams.reduce<Map<string, string[]>>((acc, team) => {
+    if (!team.groupName) return acc;
+
+    const existing = acc.get(team.groupName) || [];
+    existing.push(team.id);
+    acc.set(team.groupName, existing);
+    return acc;
+  }, new Map());
+
+  return Array.from(groupedTeams.entries()).map(([name, teamIds]) => ({ name, teamIds }));
+};
+
 export const generateGroupDefinitions = (
   teams: Team[],
   config: GroupKnockoutConfig,
@@ -117,7 +166,7 @@ export const generateGroupDefinitions = (
     }));
   }
 
-  return [];
+  return deriveGroupsFromTeams(teams);
 };
 
 export const generateMatches = (
@@ -133,12 +182,20 @@ export const generateMatches = (
     return generateSwissRound(1, teams, [], swissConfig);
   }
 
-  if (format === TournamentFormat.GROUP_KNOCKOUT && groupKnockoutConfig) {
-    const groups = generateGroupDefinitions(teams, groupKnockoutConfig);
+  if (format === TournamentFormat.GROUP_KNOCKOUT) {
+    const groups = groupKnockoutConfig
+      ? generateGroupDefinitions(teams, groupKnockoutConfig)
+      : deriveGroupsFromTeams(teams);
+
+    if (groups.length === 0) {
+      return matches;
+    }
+
     const groupMatches = createGroupStageMatches(groups);
     const highestGroupRound = Math.max(0, ...groupMatches.map((match) => match.round));
     const qualifiers = createQualifierMatches(groups, highestGroupRound + 1);
-    return [...groupMatches, ...qualifiers];
+    const knockoutRounds = createKnockoutRoundsFromSources(qualifiers, highestGroupRound + 2);
+    return [...groupMatches, ...qualifiers, ...knockoutRounds];
   }
 
   if (format === TournamentFormat.LEAGUE_SINGLE || format === TournamentFormat.LEAGUE_DOUBLE) {
@@ -514,10 +571,10 @@ export const syncGroupQualifierMatches = (tournament: Tournament): Tournament =>
     if (match.stage !== 'QUALIFIER') return match;
 
     const teamAId = match.sourceGroupA
-      ? standingsByGroup.get(match.sourceGroupA)?.[Math.max(0, (match.sourcePositionA || 1) - 1)]?.teamId || ''
+      ? match.qualifierOverrideTeamAId || standingsByGroup.get(match.sourceGroupA)?.[Math.max(0, (match.sourcePositionA || 1) - 1)]?.teamId || ''
       : match.teamAId;
     const teamBId = match.sourceGroupB
-      ? standingsByGroup.get(match.sourceGroupB)?.[Math.max(0, (match.sourcePositionB || 1) - 1)]?.teamId || ''
+      ? match.qualifierOverrideTeamBId || standingsByGroup.get(match.sourceGroupB)?.[Math.max(0, (match.sourcePositionB || 1) - 1)]?.teamId || ''
       : match.teamBId;
 
     const teamsChanged = teamAId !== match.teamAId || teamBId !== match.teamBId;

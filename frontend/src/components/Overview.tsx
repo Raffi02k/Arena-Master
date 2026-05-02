@@ -16,7 +16,8 @@ const Overview: React.FC<OverviewProps> = ({ tournament, onUpdateTournament }) =
   const [editData, setEditData] = useState<Tournament>(tournament);
 
   const playedMatches = tournament.matches.filter(m => m.status === 'PLAYED').length;
-  const progress = (playedMatches / tournament.matches.length) * 100;
+  const totalMatches = tournament.matches.length;
+  const progress = totalMatches > 0 ? (playedMatches / totalMatches) * 100 : 0;
 
   const handleSave = () => {
     onUpdateTournament(editData);

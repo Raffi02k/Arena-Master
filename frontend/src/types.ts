@@ -39,6 +39,8 @@ export interface Match {
   sourcePositionA?: number;
   sourceGroupB?: string;
   sourcePositionB?: number;
+  qualifierOverrideTeamAId?: string;
+  qualifierOverrideTeamBId?: string;
 }
 
 export interface PointsConfig {
