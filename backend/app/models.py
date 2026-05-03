@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey
+from sqlalchemy import Column, String, Integer, ForeignKey, BigInteger
 from fastapi.security import OAuth2PasswordBearer
 from .db import Base
 
@@ -13,5 +13,5 @@ class Tournament(Base):
     id = Column(String, primary_key=True, index=True)
     name = Column(String)
     data = Column(String) # JSON string
-    created_at = Column(Integer)
+    created_at = Column(BigInteger)
     user_id = Column(Integer, ForeignKey("users.id"))
