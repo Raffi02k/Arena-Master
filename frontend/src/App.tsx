@@ -176,12 +176,24 @@ export default function App() {
         name: syncedTournament.name,
         data: syncedTournament,
       });
+      
+      // Update local tournaments list optimistically
+      setTournaments(prev => [{
+        id: syncedTournament.id,
+        name: syncedTournament.name,
+        data: syncedTournament,
+        created_at: Date.now(),
+        user_id: user?.id || 0
+      }, ...prev]);
+
       window.history.pushState({}, '', `/${syncedTournament.id}`);
       setTournament(syncedTournament);
       setView('tournament');
-       setActiveTab(format === TournamentFormat.GROUP_KNOCKOUT ? 'groups' : 'matches');
+      setActiveTab(format === TournamentFormat.GROUP_KNOCKOUT ? 'groups' : 'matches');
     } catch (error) {
       console.error('Failed to save tournament:', error);
+      alert('Failed to save tournament to database. It might not be available after refresh.');
+      // Still show it locally so user can continue working
       setTournament(syncedTournament);
       setView('tournament');
     }
