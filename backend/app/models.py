@@ -13,5 +13,5 @@ class Tournament(Base):
     id = Column(String, primary_key=True, index=True)
     name = Column(String)
     data = Column(String) # JSON string
-    created_at = Column(BigInteger)
+    created_at = Column(String)
     user_id = Column(Integer, ForeignKey("users.id"))
